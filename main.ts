@@ -1,68 +1,30 @@
-"use strict";
+// The Absurd Clause Contest v2 — entry writer (Node-only, CommonJS).
+// Writes the final one-sentence clause to entry.txt in the grader output dir.
+const fs = require("fs");
+const path = require("path");
 
-const fs = require("node:fs");
-const path = require("node:path");
+const answer = "Notice of any fee increase shall be deemed received when the Company inserts it into the song stuck in your head; humming the chorus constitutes acceptance.";
 
-// The Absurd Clause Contest — one absurd ToS clause, one sentence.
-// Final answer, exactly as specified (156 characters, 1 sentence).
-const ENTRY =
-  "Notice of any fee increase shall be deemed received when the Company inserts it into the song stuck in your head; humming the chorus constitutes acceptance.";
+// Grader output dir: env first, /output fallback. Never write to cwd.
+const outDir = process.env.MAKEFUN_OUTPUT_DIR || process.env.MAKEFUN_OUTPUT || "/output";
 
-const EXPECTED_LENGTH = 156;
+fs.mkdirSync(outDir, { recursive: true });
+const outPath = path.join(outDir, "entry.txt");
+fs.writeFileSync(outPath, answer, "utf8");
 
-function writeEntry(targetPath) {
-  fs.mkdirSync(path.dirname(targetPath), { recursive: true });
-  fs.writeFileSync(targetPath, ENTRY, "utf8");
-  return targetPath;
+// Self-check: read back byte-for-byte and verify content, length, gate, sentences.
+const back = fs.readFileSync(outPath, "utf8");
+if (back !== answer) {
+  throw new Error("Self-check failed: entry.txt does not match the answer byte-for-byte.");
 }
-
-function sentenceCount(text) {
-  const matches = text.match(/[.!?]+/g);
-  return matches === null ? 0 : matches.length;
+if (answer.length !== 156) {
+  throw new Error("Self-check failed: answer length is " + answer.length + ", expected 156.");
 }
-
-function main() {
-  const localPath = path.join(process.cwd(), "entry.txt");
-  writeEntry(localPath);
-
-  // The grader reads /output/entry.txt, so write there too when possible.
-  try {
-    writeEntry(path.join("/output", "entry.txt"));
-  } catch (err) {
-    console.log("Note: could not write /output/entry.txt:", err.message);
-  }
-
-  // Self-check: read entry.txt back byte-per-byte and verify the gates.
-  const readBack = fs.readFileSync(localPath, "utf8");
-  const readBackBytes = fs.readFileSync(localPath);
-  const expectedBytes = Buffer.from(ENTRY, "utf8");
-  if (!readBackBytes.equals(expectedBytes)) {
-    throw new Error("Self-check failed: entry.txt bytes differ from ENTRY");
-  }
-  if (readBack !== ENTRY) {
-    throw new Error("Self-check failed: entry.txt text differs from ENTRY");
-  }
-  if (readBack.length !== EXPECTED_LENGTH) {
-    throw new Error(
-      "Self-check failed: expected " + EXPECTED_LENGTH + " characters, got " + readBack.length
-    );
-  }
-  if (readBack.length < 1 || readBack.length > 200) {
-    throw new Error("Self-check failed: entry must be 1-200 characters");
-  }
-  if (readBack.trim().length === 0) {
-    throw new Error("Self-check failed: entry must not be only whitespace");
-  }
-  if (sentenceCount(readBack) !== 1) {
-    throw new Error(
-      "Self-check failed: expected 1 sentence, got " + sentenceCount(readBack)
-    );
-  }
-
-  console.log("OK: entry.txt written to " + localPath);
-  console.log("Characters: " + readBack.length);
-  console.log("Sentences: " + sentenceCount(readBack));
-  console.log("Entry: " + readBack);
+if (answer.length < 1 || answer.length > 200) {
+  throw new Error("Self-check failed: answer outside the 1-200 character gate.");
 }
-
-main();
+const sentenceCount = answer.split(".").filter(function (part) { return part.trim().length > 0; }).length;
+if (sentenceCount !== 1) {
+  throw new Error("Self-check failed: expected exactly 1 sentence, found " + sentenceCount + ".");
+}
+console.log("OK: entry.txt written to " + outPath + " (" + answer.length + " chars, 1 sentence).");
