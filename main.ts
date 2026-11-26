@@ -1,30 +1,25 @@
-// The Absurd Clause Contest v2 — entry writer (Node-only, CommonJS).
-// Writes the final one-sentence clause to entry.txt in the grader output dir.
-const fs = require("fs");
-const path = require("path");
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
-const answer = "Notice of any fee increase shall be deemed received when the Company inserts it into the song stuck in your head; humming the chorus constitutes acceptance.";
+const ANSWER =
+  "The Customer may select an independent arbitrator from the Company's claw machine; any arbitrator won shall constitute full and final settlement.";
 
-// Grader output dir: env first, /output fallback. Never write to cwd.
-const outDir = process.env.MAKEFUN_OUTPUT_DIR || process.env.MAKEFUN_OUTPUT || "/output";
+const outDir =
+  process.env.MAKEFUN_OUTPUT_DIR ||
+  process.env.MAKEFUN_OUTPUT ||
+  "/output";
 
-fs.mkdirSync(outDir, { recursive: true });
-const outPath = path.join(outDir, "entry.txt");
-fs.writeFileSync(outPath, answer, "utf8");
+mkdirSync(outDir, { recursive: true });
+writeFileSync(join(outDir, "entry.txt"), ANSWER, "utf8");
 
-// Self-check: read back byte-for-byte and verify content, length, gate, sentences.
-const back = fs.readFileSync(outPath, "utf8");
-if (back !== answer) {
-  throw new Error("Self-check failed: entry.txt does not match the answer byte-for-byte.");
+// Self-check: read back from the output dir only, never from cwd.
+const back = readFileSync(join(outDir, "entry.txt"), "utf8");
+if (back !== ANSWER) {
+  throw new Error("self-check failed: entry.txt does not match ANSWER");
 }
-if (answer.length !== 156) {
-  throw new Error("Self-check failed: answer length is " + answer.length + ", expected 156.");
+if (ANSWER.length < 1 || ANSWER.length > 200) {
+  throw new Error("gate failed: answer must be 1-200 characters");
 }
-if (answer.length < 1 || answer.length > 200) {
-  throw new Error("Self-check failed: answer outside the 1-200 character gate.");
+if (ANSWER.trim().split(/[.!?]+/).filter(Boolean).length !== 1) {
+  throw new Error("gate failed: answer must be a single sentence");
 }
-const sentenceCount = answer.split(".").filter(function (part) { return part.trim().length > 0; }).length;
-if (sentenceCount !== 1) {
-  throw new Error("Self-check failed: expected exactly 1 sentence, found " + sentenceCount + ".");
-}
-console.log("OK: entry.txt written to " + outPath + " (" + answer.length + " chars, 1 sentence).");
